@@ -63,7 +63,7 @@
             
             initializeSocket() {
                 // Connexion au serveur Socket.io
-                this.socket = io('http://localhost:3000', {
+                this.socket = io({
                     transports: ['websocket']
                 });
                 
