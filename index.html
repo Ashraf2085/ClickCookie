@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cookie Clicker Neon - Multijoueur Réel</title>
+    <meta name="description" content="Cookie Clicker Neon Multijoueur Réel - Affrontez d'autres joueurs en temps réel!">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="particles" id="particles"></div>
+    
+    <!-- Modal multijoueur -->
+    <div class="modal" id="room-modal">
+        <div class="modal-content">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; position: relative;">
+                <h2 style="margin: 0;"><i class="fas fa-users"></i> MULTIJOUEUR</h2>
+                <button class="close-modal-top" id="close-modal-btn">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            
+            <div class="connection-status disconnected" id="connection-status">
+                <i class="fas fa-wifi"></i> Déconnecté
+            </div>
+            
+            <input type="text" id="player-name" class="modal-input" placeholder="Votre nom de joueur" maxlength="15" value="Joueur">
+            <input type="text" id="room-code" class="modal-input" placeholder="Code de la salle (laisser vide pour créer)" maxlength="6">
+            
+            <div class="modal-buttons">
+                <button class="modal-button" id="join-room-btn">
+                    <i class="fas fa-door-open"></i> Rejoindre
+                </button>
+                <button class="modal-button" id="create-room-btn">
+                    <i class="fas fa-plus"></i> Créer
+                </button>
+            </div>
+            
+            <div class="modal-buttons">
+                <button class="modal-button" id="cancel-room-btn">
+                    <i class="fas fa-times"></i> Annuler
+                </button>
+            </div>
+            
+            <div id="room-info" style="display: none; margin-top: 15px; padding: 10px; background: rgba(255,140,0,0.1); border-radius: 8px; border: 1px solid var(--neon-orange);">
+                <div style="margin-bottom: 5px;"><strong>Salle:</strong> <span id="current-room-code"></span></div>
+                <div><strong>Joueurs:</strong> <span id="player-count">0</span>/8</div>
+            </div>
+        </div>
+    </div>
+    
+    <header>
+        <div class="header-container">
+            <div class="logo">
+                <i class="fas fa-cookie-bite"></i>
+                <span>COOKIE CLICKER MULTI</span>
+            </div>
+            <div class="hamburger" id="hamburger">
+                <span></span>
+                <span></span>
+                <span></span>
+            </div>
+            <nav class="nav-links" id="nav-links">
+                <a href="#game" class="nav-link">Joueur</a>
+                <a href="#multiplayer" class="nav-link">Multijoueur</a>
+                <button class="nav-link" id="multiplayer-btn">
+                    <i class="fas fa-users"></i> Multijoueur
+                </button>
+            </nav>
+        </div>
+    </header>
+    
+    <div class="main-container">
+        <div class="game-container" id="game">
+            
+            <!-- Section des statistiques -->
+            <div class="stats-container">
+                <h1><i class="fas fa-cookie-bite"></i> COOKIE CLICKER MULTI</h1>
+                <div class="score-display" id="score-display">0</div>
+                
+                <div class="stats-grid">
+                    <div class="stat-item">
+                        <div>Cookies par clic</div>
+                        <div class="stat-value" id="cookies-per-click">1</div>
+                    </div>
+                    <div class="stat-item">
+                        <div>Auto-clics/sec</div>
+                        <div class="stat-value" id="auto-clicks">0</div>
+                    </div>
+                    <div class="stat-item">
+                        <div>Cookies totaux</div>
+                        <div class="stat-value" id="total-cookies">0</div>
+                    </div>
+                    <div class="stat-item">
+                        <div>Niveau</div>
+                        <div class="stat-value" id="player-level">1</div>
+                    </div>
+                </div>
+                
+                <div class="save-buttons">
+                    <button class="save-button" id="save-game">
+                        <i class="fas fa-save"></i> Sauvegarder
+                    </button>
+                    <button class="save-button" id="load-game">
+                        <i class="fas fa-download"></i> Charger
+                    </button>
+                    <button class="save-button" id="reset-game">
+                        <i class="fas fa-redo"></i> Réinitialiser
+                    </button>
+                </div>
+            </div>
+
+            <!-- Section principale où l'on clique -->
+            <div class="clicker-container">
+                <img src="cookie.png" alt="Cookie à cliquer" id="click-target">
+                <div class="click-power">Puissance de clic: <span id="click-power">1</span> cookie(s)</div>
+            </div>
+
+            <!-- Section pour les améliorations -->
+            <div class="upgrade-container">
+                <h2><i class="fas fa-arrow-up"></i> AMÉLIORATIONS</h2>
+                
+                <div class="upgrade-category">
+                    <div class="category-title">CLICS MANUELS</div>
+                    <button id="upgrade-click-power" class="upgrade-button" disabled>
+                        <div class="upgrade-info">
+                            <div class="upgrade-name">Main renforcée</div>
+                            <div class="upgrade-description">+1 cookie par clic</div>
+                        </div>
+                        <div class="upgrade-cost">Coût: <span id="click-power-cost">15</span></div>
+                    </button>
+                    
+                    <button id="upgrade-mega-click" class="upgrade-button" disabled>
+                        <div class="upgrade-info">
+                            <div class="upgrade-name">Méga-clic</div>
+                            <div class="upgrade-description">Clics occasionnels x10</div>
+                        </div>
+                        <div class="upgrade-cost">Coût: <span id="mega-click-cost">100</span></div>
+                    </button>
+                </div>
+                
+                <div class="upgrade-category">
+                    <div class="category-title">AUTOMATISATION</div>
+                    <button id="upgrade-auto-click" class="upgrade-button" disabled>
+                        <div class="upgrade-info">
+                            <div class="upgrade-name">Robot cuisinier</div>
+                            <div class="upgrade-description">+1 cookie/sec</div>
+                        </div>
+                        <div class="upgrade-cost">Coût: <span id="auto-click-cost">25</span></div>
+                    </button>
+                    
+                    <button id="upgrade-grandma" class="upgrade-button" disabled>
+                        <div class="upgrade-info">
+                            <div class="upgrade-name">Grand-mère</div>
+                            <div class="upgrade-description">+5 cookies/sec</div>
+                        </div>
+                        <div class="upgrade-cost">Coût: <span id="grandma-cost">100</span></div>
+                    </button>
+                    
+                    <button id="upgrade-bakery" class="upgrade-button" disabled>
+                        <div class="upgrade-info">
+                            <div class="upgrade-name">Boulangerie</div>
+                            <div class="upgrade-description">+25 cookies/sec</div>
+                        </div>
+                        <div class="upgrade-cost">Coût: <span id="bakery-cost">500</span></div>
+                    </button>
+                </div>
+                
+                <div class="upgrade-category">
+                    <div class="category-title">AMÉLIORATIONS SPÉCIALES</div>
+                    <button id="upgrade-lucky-cookie" class="upgrade-button" disabled>
+                        <div class="upgrade-info">
+                            <div class="upgrade-name">Cookie chanceux</div>
+                            <div class="upgrade-description">Chance de cookies bonus</div>
+                        </div>
+                        <div class="upgrade-cost">Coût: <span id="lucky-cookie-cost">250</span></div>
+                    </button>
+                    
+                    <button id="upgrade-golden-cookie" class="upgrade-button" disabled>
+                        <div class="upgrade-info">
+                            <div class="upgrade-name">Cookie doré</div>
+                            <div class="upgrade-description">Apparition de cookies bonus</div>
+                        </div>
+                        <div class="upgrade-cost">Coût: <span id="golden-cookie-cost">1000</span></div>
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Section multijoueur -->
+        <section class="multiplayer-container" id="multiplayer">
+            <h2><i class="fas fa-trophy"></i> CLASSEMENT EN TEMPS RÉEL</h2>
+            
+            <div class="room-controls">
+                <button class="room-button" id="show-room-btn">
+                    <i class="fas fa-cog"></i> Gérer la salle
+                </button>
+                <button class="room-button" id="start-party-btn">
+                    <i class="fas fa-music"></i> Lancer une fête
+                </button>
+                <button class="room-button" id="leave-room-btn">
+                    <i class="fas fa-sign-out-alt"></i> Quitter
+                </button>
+            </div>
+            
+            <div class="leaderboard" id="leaderboard">
+                <div class="player-info current-player">
+                    <div class="player-name">
+                        <i class="fas fa-user"></i>
+                        <span id="current-player-name">Vous</span>
+                        <span class="host-badge" id="host-badge" style="display: none;">HÔTE</span>
+                    </div>
+                    <div class="player-score">0</div>
+                </div>
+            </div>
+        </section>
+    </div>
+    <script src="script.js"></script>
+</body>
+</html>
