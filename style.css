@@ -260,12 +260,23 @@
             width: 250px;
             height: 250px;
             cursor: pointer;
+            user-select: none;
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            -webkit-user-drag: none;
             transition: transform 0.1s ease-in-out, filter 0.3s;
             filter: drop-shadow(0 0 10px var(--neon-yellow)) drop-shadow(0 0 20px var(--neon-yellow));
             border-radius: 50%;
             animation: cookie-rotate 20s infinite linear;
         }
-        
+        #golden-cookie{
+            user-select: none;
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            -webkit-user-drag: none;
+        }
         @keyframes cookie-rotate {
             from { transform: rotate(0deg); }
             to { transform: rotate(360deg); }

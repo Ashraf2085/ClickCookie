@@ -883,6 +883,7 @@
             if (!goldenCookieActive) return;
             
             const cookie = document.createElement('img');
+            cookie.id = 'golden-cookie';
             cookie.src = 'cookie_doree.png';
             cookie.alt = "Cookie doré";
             cookie.classList.add('golden-cookie');
@@ -905,7 +906,14 @@
                 afficherEffetSpecial(`+${bonus} COOKIES!`, "gold");
                 cookie.remove();
             });
-            
+            cookie.addEventListener('dragstart', function(e) {
+                e.preventDefault();
+                return false;
+            });
+
+            cookie.addEventListener('mousedown', function(e) {
+                e.preventDefault();
+            });
             // Le cookie disparaît après 10 secondes
             setTimeout(() => {
                 if (document.body.contains(cookie)) {
@@ -930,6 +938,7 @@
                     btnLoadGame.click();
                 }
             }
+
         });
 
         // Ajouter l'animation de chute pour les particules de fête
@@ -941,3 +950,15 @@
             }
         `;
         document.head.appendChild(style);
+        // Empêcher le drag & drop sur l'image
+
+const cookies = document.getElementById('click-target');
+
+cookies.addEventListener('dragstart', function(e) {
+    e.preventDefault();
+    return false;
+});
+
+cookies.addEventListener('mousedown', function(e) {
+    e.preventDefault();
+});
