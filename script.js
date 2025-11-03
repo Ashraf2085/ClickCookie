@@ -1,4 +1,93 @@
 // ============================
+// FONCTIONS UTILITAIRES (DOIVENT ÊTRE DÉFINIES AVANT)
+// ============================
+
+// Mettre à jour l'affichage des boosts
+function updateBoostDisplay() {
+    const boostsList = document.getElementById('boosts-list');
+    if (!boostsList) return;
+    
+    boostsList.innerHTML = '';
+    
+    const activeBoosts = [];
+    
+    if (gameData.boostMultiplier > 1.0) {
+        activeBoosts.push(`Boost x${gameData.boostMultiplier.toFixed(1)}`);
+    }
+    
+    if (window.multiplayerClient?.activeParty) {
+        activeBoosts.push('Fête Active (+30%)');
+    }
+    
+    if (window.multiplayerClient?.activeChallenge) {
+        activeBoosts.push('Défi en cours');
+    }
+    
+    if (timeWarpActive) {
+        activeBoosts.push('Distorsion Temporelle');
+    }
+    
+    if (activeBoosts.length === 0) {
+        boostsList.innerHTML = '<div class="no-boosts">Aucun boost actif</div>';
+    } else {
+        activeBoosts.forEach(boost => {
+            const boostElement = document.createElement('div');
+            boostElement.className = 'boost-item';
+            boostElement.textContent = boost;
+            boostsList.appendChild(boostElement);
+        });
+    }
+}
+
+// Créer un cookie doré
+function creerCookieDore() {
+    if (!goldenCookieActive) return;
+    
+    const cookie = document.createElement('div');
+    cookie.id = 'golden-cookie';
+    cookie.classList.add('golden-cookie');
+    cookie.style.width = '80px';
+    cookie.style.height = '80px';
+    cookie.style.position = 'fixed';
+    cookie.style.left = `${Math.random() * 80 + 10}%`;
+    cookie.style.top = `${Math.random() * 80 + 10}%`;
+    cookie.style.cursor = 'pointer';
+    cookie.style.zIndex = '100';
+    cookie.style.background = 'radial-gradient(circle, #ffd700, #ffaa00)';
+    cookie.style.borderRadius = '50%';
+    cookie.style.boxShadow = '0 0 20px gold, 0 0 40px orange';
+    
+    document.body.appendChild(cookie);
+    
+    // Gérer le clic sur le cookie doré
+    cookie.addEventListener('click', () => {
+        const bonus = 100 * niveau;
+        score += bonus;
+        totalCookies += bonus;
+        mettreAJourAffichage();
+        afficherEffetSpecial(`+${bonus} COOKIES!`, "gold");
+        cookie.remove();
+    });
+    
+    // Empêcher le drag & drop
+    cookie.addEventListener('dragstart', function(e) {
+        e.preventDefault();
+        return false;
+    });
+
+    cookie.addEventListener('mousedown', function(e) {
+        e.preventDefault();
+    });
+    
+    // Le cookie disparaît après 10 secondes
+    setTimeout(() => {
+        if (document.body.contains(cookie)) {
+            cookie.remove();
+        }
+    }, 10000);
+}
+
+// ============================
 // GESTION RESPONSIVE
 // ============================
 
@@ -6,6 +95,7 @@
 document.getElementById('hamburger').addEventListener('click', function() {
     document.getElementById('nav-links').classList.toggle('active');
 });
+
 function adjustLayoutForScreen() {
     const screenWidth = window.innerWidth;
     const gameContainer = document.querySelector('.game-container');
@@ -18,14 +108,17 @@ function adjustLayoutForScreen() {
         gameContainer.style.gap = '25px';
     }
 }
+
 window.addEventListener('load', adjustLayoutForScreen);
 window.addEventListener('resize', adjustLayoutForScreen);
+
 // Fermer le menu en cliquant sur un lien
 document.querySelectorAll('.nav-link').forEach(link => {
     link.addEventListener('click', () => {
         document.getElementById('nav-links').classList.remove('active');
     });
 });
+
 function truncatePlayerNames() {
     const playerNames = document.querySelectorAll('.player-name span');
     const maxLength = window.innerWidth <= 480 ? 12 : 
@@ -150,7 +243,7 @@ class MultiplayerClient {
         });
         
         this.socket.on('cookie-party-started', () => {
-            this.startCookieParty();
+            this.handleCookiePartyStarted();
         });
         
         this.socket.on('multiplayer-boost-started', () => {
@@ -298,6 +391,9 @@ class MultiplayerClient {
     }
     
     leaveRoom() {
+        // Nettoyer les effets de fête
+        this.cleanupPartyEffects();
+        
         if (this.socket) {
             this.socket.disconnect();
             this.socket.connect();
@@ -307,6 +403,7 @@ class MultiplayerClient {
         this.currentPlayer = null;
         this.players = [];
         this.previousPlayerOrder = [];
+        this.activeParty = false;
         
         this.updateLeaderboard([]);
         this.hideRoomModal();
@@ -493,27 +590,156 @@ class MultiplayerClient {
         creerCookieDore();
     }
     
+    // ============================
+    // CORRECTIONS POUR LA FÊTE DES COOKIES
+    // ============================
+
     startCookieParty() {
-        if (!this.connected || !this.currentRoom) return;
+        if (!this.connected || !this.currentRoom) {
+            this.showNotification('Non connecté ou pas dans une salle', 'var(--neon-pink)');
+            return;
+        }
+        
+        // Vérifier si une fête est déjà en cours
+        if (this.activeParty) {
+            this.showNotification('Une fête est déjà en cours! Attendez la fin.', 'var(--neon-pink)');
+            return;
+        }
+        
+        // Désactiver le bouton temporairement
+        const partyBtn = document.getElementById('start-party-btn-modal');
+        const originalText = partyBtn.innerHTML;
+        partyBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> En cours...';
+        partyBtn.disabled = true;
         
         this.socket.emit('start-cookie-party');
         this.showNotification('🎊 FÊTE DES COOKIES LANÇÉE!', 'var(--neon-yellow)');
         
-        // Limite de 10 secondes
+        // Réactiver le bouton après 2 secondes
+        setTimeout(() => {
+            partyBtn.disabled = false;
+            partyBtn.innerHTML = originalText;
+        }, 2000);
+    }
+
+    // Méthode pour gérer le début de fête du serveur
+    handleCookiePartyStarted() {
         this.activeParty = true;
+        this.showNotification('🎉 FÊTE DES COOKIES! Effets activés!', 'var(--neon-yellow)');
         
         // Effet visuel de fête
-        for (let i = 0; i < 20; i++) {
-            setTimeout(() => {
-                this.createPartyParticle();
-            }, i * 100);
-        }
+        this.startPartyVisualEffects();
         
-        // Arrêter après 10 secondes
+        // Appliquer le bonus de production pendant la fête
+        const originalMultiplier = gameData.boostMultiplier;
+        gameData.boostMultiplier *= 1.3; // +30% pendant la fête
+        updateBoostDisplay();
+        
+        // Limite de 10 secondes
         setTimeout(() => {
             this.activeParty = false;
+            gameData.boostMultiplier = originalMultiplier;
+            updateBoostDisplay();
             this.showNotification('Fête terminée!', 'var(--neon-pink)');
+            this.cleanupPartyEffects();
         }, 10000);
+    }
+
+    // Nouvelle méthode pour les effets visuels
+    startPartyVisualEffects() {
+        const effectsContainer = document.createElement('div');
+        effectsContainer.id = 'party-effects';
+        effectsContainer.style.position = 'fixed';
+        effectsContainer.style.top = '0';
+        effectsContainer.style.left = '0';
+        effectsContainer.style.width = '100%';
+        effectsContainer.style.height = '100%';
+        effectsContainer.style.pointerEvents = 'none';
+        effectsContainer.style.zIndex = '999';
+        document.body.appendChild(effectsContainer);
+        
+        // Ajouter une classe au body pour les effets CSS
+        document.body.classList.add('party-active');
+        
+        // Créer un effet de glow autour du cookie
+        const cookieGlow = document.createElement('div');
+        cookieGlow.className = 'cookie-party-effect';
+        effectsContainer.appendChild(cookieGlow);
+        
+        // Créer des particules de fête
+        for (let i = 0; i < 30; i++) {
+            setTimeout(() => {
+                this.createPartyParticle();
+            }, i * 200);
+        }
+        
+        // Effet de scintillement du fond
+        let flashCount = 0;
+        const flashInterval = setInterval(() => {
+            document.body.style.background = flashCount % 2 === 0 
+                ? 'linear-gradient(45deg, #0a0a1a, #1a0a2a)' 
+                : 'linear-gradient(45deg, #1a0a2a, #2a0a3a)';
+            flashCount++;
+            
+            if (flashCount >= 10) {
+                clearInterval(flashInterval);
+                document.body.style.background = '';
+            }
+        }, 500);
+    }
+
+    // Méthode modifiée pour créer des particules
+    createPartyParticle() {
+        const particle = document.createElement('div');
+        particle.style.position = 'fixed';
+        particle.style.left = Math.random() * 100 + 'vw';
+        particle.style.top = '-20px';
+        particle.style.width = (Math.random() * 15 + 5) + 'px';
+        particle.style.height = particle.style.width;
+        particle.style.background = `hsl(${Math.random() * 360}, 100%, 50%)`;
+        particle.style.borderRadius = '50%';
+        particle.style.pointerEvents = 'none';
+        particle.style.zIndex = '1000';
+        particle.style.animation = `fall ${Math.random() * 2 + 2}s linear forwards`;
+        
+        document.body.appendChild(particle);
+        
+        setTimeout(() => {
+            if (particle.parentNode) {
+                particle.remove();
+            }
+        }, 5000);
+    }
+
+    // Méthode pour nettoyer les effets de fête
+    cleanupPartyEffects() {
+        this.activeParty = false;
+        
+        // Retirer la classe du body
+        document.body.classList.remove('party-active');
+        
+        // Supprimer toutes les particules de fête
+        const particles = document.querySelectorAll('div[style*="animation: fall"]');
+        particles.forEach(particle => {
+            if (particle.parentNode) {
+                particle.remove();
+            }
+        });
+        
+        // Supprimer le conteneur d'effets
+        const effectsContainer = document.getElementById('party-effects');
+        if (effectsContainer) {
+            effectsContainer.remove();
+        }
+        
+        // Supprimer l'effet de glow autour du cookie
+        const cookieGlow = document.querySelector('.cookie-party-effect');
+        if (cookieGlow) {
+            cookieGlow.remove();
+        }
+        
+        // Réinitialiser le fond
+        document.body.style.background = '';
     }
     
     startMultiplayerBoost() {
@@ -589,26 +815,6 @@ class MultiplayerClient {
         } else {
             this.showNotification('💫 Le défi est terminé!', 'var(--neon-pink)');
         }
-    }
-    
-    createPartyParticle() {
-        const particle = document.createElement('div');
-        particle.style.position = 'fixed';
-        particle.style.left = Math.random() * 100 + 'vw';
-        particle.style.top = '-20px';
-        particle.style.width = '10px';
-        particle.style.height = '10px';
-        particle.style.background = `hsl(${Math.random() * 360}, 100%, 50%)`;
-        particle.style.borderRadius = '50%';
-        particle.style.pointerEvents = 'none';
-        particle.style.zIndex = '1000';
-        particle.style.animation = 'fall 3s linear forwards';
-        
-        document.body.appendChild(particle);
-        
-        setTimeout(() => {
-            particle.remove();
-        }, 3000);
     }
 }
 
@@ -1134,41 +1340,6 @@ setInterval(() => {
     verifierNiveau();
 }, 1000);
 
-// Mettre à jour l'affichage des boosts
-function updateBoostDisplay() {
-    const boostsList = document.getElementById('boosts-list');
-    boostsList.innerHTML = '';
-    
-    const activeBoosts = [];
-    
-    if (gameData.boostMultiplier > 1.0) {
-        activeBoosts.push(`Boost x${gameData.boostMultiplier}`);
-    }
-    
-    if (window.multiplayerClient?.activeParty) {
-        activeBoosts.push('Fête Active');
-    }
-    
-    if (window.multiplayerClient?.activeChallenge) {
-        activeBoosts.push('Défi en cours');
-    }
-    
-    if (timeWarpActive) {
-        activeBoosts.push('Distorsion Temporelle');
-    }
-    
-    if (activeBoosts.length === 0) {
-        boostsList.innerHTML = '<div class="no-boosts">Aucun boost actif</div>';
-    } else {
-        activeBoosts.forEach(boost => {
-            const boostElement = document.createElement('div');
-            boostElement.className = 'boost-item';
-            boostElement.textContent = boost;
-            boostsList.appendChild(boostElement);
-        });
-    }
-}
-
 // Créer des particules de fond
 function creerParticulesFond() {
     const particlesContainer = document.getElementById('particles');
@@ -1257,50 +1428,6 @@ function afficherNotification(message, couleur = "var(--neon-blue)") {
     }, 3000);
 }
 
-// Créer un cookie doré
-function creerCookieDore() {
-    if (!goldenCookieActive) return;
-    
-    const cookie = document.createElement('img');
-    cookie.id = 'golden-cookie';
-    cookie.src = 'cookie_doree.png';
-    cookie.alt = "Cookie doré";
-    cookie.classList.add('golden-cookie');
-    cookie.style.width = '80px';
-    cookie.style.height = '80px';
-    cookie.style.position = 'fixed';
-    cookie.style.left = `${Math.random() * 80 + 10}%`;
-    cookie.style.top = `${Math.random() * 80 + 10}%`;
-    cookie.style.cursor = 'pointer';
-    cookie.style.zIndex = '100';
-    
-    document.body.appendChild(cookie);
-    
-    // Gérer le clic sur le cookie doré
-    cookie.addEventListener('click', () => {
-        const bonus = 100 * niveau;
-        score += bonus;
-        totalCookies += bonus;
-        mettreAJourAffichage();
-        afficherEffetSpecial(`+${bonus} COOKIES!`, "gold");
-        cookie.remove();
-    });
-    cookie.addEventListener('dragstart', function(e) {
-        e.preventDefault();
-        return false;
-    });
-
-    cookie.addEventListener('mousedown', function(e) {
-        e.preventDefault();
-    });
-    // Le cookie disparaît après 10 secondes
-    setTimeout(() => {
-        if (document.body.contains(cookie)) {
-            cookie.remove();
-        }
-    }, 10000);
-}
-
 // Initialisation
 document.addEventListener('DOMContentLoaded', () => {
     creerParticulesFond();
@@ -1318,7 +1445,6 @@ document.addEventListener('DOMContentLoaded', () => {
             btnLoadGame.click();
         }
     }
-
 });
 
 // Ajouter l'animation de chute pour les particules de fête
