@@ -50,6 +50,58 @@
             </div>
         </div>
     </div>
+
+    <!-- Modal des événements multijoueur -->
+    <div class="modal" id="events-modal">
+        <div class="modal-content">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; position: relative;">
+                <h2 style="margin: 0;"><i class="fas fa-bolt"></i> ÉVÉNEMENTS MULTIJOUEUR</h2>
+                <button class="close-modal-top" id="close-events-modal-btn">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            
+            <div class="events-container">
+                <div class="event-item">
+                    <h3><i class="fas fa-music"></i> Fête des Cookies</h3>
+                    <p>Lance une fête de 10 secondes avec des effets visuels pour tous les joueurs</p>
+                    <button class="event-button" id="start-party-btn-modal">
+                        <i class="fas fa-play"></i> Lancer (10s)
+                    </button>
+                </div>
+                
+                <div class="event-item">
+                    <h3><i class="fas fa-bolt"></i> Boost Multijoueur</h3>
+                    <p>+50% de production pour tous les joueurs pendant 30 secondes</p>
+                    <button class="event-button" id="start-boost-btn">
+                        <i class="fas fa-rocket"></i> Activer (30s)
+                    </button>
+                </div>
+                
+                <div class="event-item">
+                    <h3><i class="fas fa-gift"></i> Cadeau Collectif</h3>
+                    <p>Offre 1000 cookies à tous les joueurs de la salle</p>
+                    <button class="event-button" id="start-gift-btn">
+                        <i class="fas fa-gift"></i> Offrir
+                    </button>
+                </div>
+                
+                <div class="event-item">
+                    <h3><i class="fas fa-trophy"></i> Défi Rapide</h3>
+                    <p>Compétition de 60 secondes - le gagnant reçoit un bonus</p>
+                    <button class="event-button" id="start-challenge-btn">
+                        <i class="fas fa-flag"></i> Démarrer (60s)
+                    </button>
+                </div>
+            </div>
+            
+            <div class="modal-buttons">
+                <button class="modal-button" id="close-events-btn">
+                    <i class="fas fa-times"></i> Fermer
+                </button>
+            </div>
+        </div>
+    </div>
     
     <header>
         <div class="header-container">
@@ -67,6 +119,9 @@
                 <a href="#multiplayer" class="nav-link">Multijoueur</a>
                 <button class="nav-link" id="multiplayer-btn">
                     <i class="fas fa-users"></i> Multijoueur
+                </button>
+                <button class="nav-link" id="events-btn">
+                    <i class="fas fa-bolt"></i> Événements
                 </button>
             </nav>
         </div>
@@ -98,6 +153,12 @@
                         <div class="stat-value" id="player-level">1</div>
                     </div>
                 </div>
+
+                <!-- Nouvelle section des boosts actifs -->
+                <div class="active-boosts" id="active-boosts">
+                    <h3><i class="fas fa-bolt"></i> BOOSTS ACTIFS</h3>
+                    <div id="boosts-list"></div>
+                </div>
                 
                 <div class="save-buttons">
                     <button class="save-button" id="save-game">
@@ -116,6 +177,12 @@
             <div class="clicker-container">
                 <img src="cookie.png" alt="Cookie à cliquer" id="click-target">
                 <div class="click-power">Puissance de clic: <span id="click-power">1</span> cookie(s)</div>
+                
+                <!-- Indicateur de défi en cours -->
+                <div class="challenge-indicator" id="challenge-indicator" style="display: none;">
+                    <div class="challenge-timer" id="challenge-timer">60s</div>
+                    <div class="challenge-text">DÉFI EN COURS!</div>
+                </div>
             </div>
 
             <!-- Section pour les améliorations -->
@@ -138,6 +205,14 @@
                             <div class="upgrade-description">Clics occasionnels x10</div>
                         </div>
                         <div class="upgrade-cost">Coût: <span id="mega-click-cost">100</span></div>
+                    </button>
+
+                    <button id="upgrade-critical-click" class="upgrade-button" disabled>
+                        <div class="upgrade-info">
+                            <div class="upgrade-name">Clic Critique</div>
+                            <div class="upgrade-description">Chance de coup critique x3</div>
+                        </div>
+                        <div class="upgrade-cost">Coût: <span id="critical-click-cost">500</span></div>
                     </button>
                 </div>
                 
@@ -166,6 +241,14 @@
                         </div>
                         <div class="upgrade-cost">Coût: <span id="bakery-cost">500</span></div>
                     </button>
+
+                    <button id="upgrade-factory" class="upgrade-button" disabled>
+                        <div class="upgrade-info">
+                            <div class="upgrade-name">Usine à Cookies</div>
+                            <div class="upgrade-description">+100 cookies/sec</div>
+                        </div>
+                        <div class="upgrade-cost">Coût: <span id="factory-cost">2000</span></div>
+                    </button>
                 </div>
                 
                 <div class="upgrade-category">
@@ -185,6 +268,14 @@
                         </div>
                         <div class="upgrade-cost">Coût: <span id="golden-cookie-cost">1000</span></div>
                     </button>
+
+                    <button id="upgrade-time-warp" class="upgrade-button" disabled>
+                        <div class="upgrade-info">
+                            <div class="upgrade-name">Distorsion Temporelle</div>
+                            <div class="upgrade-description">x2 production pendant 1 minute</div>
+                        </div>
+                        <div class="upgrade-cost">Coût: <span id="time-warp-cost">5000</span></div>
+                    </button>
                 </div>
             </div>
         </div>
@@ -197,8 +288,8 @@
                 <button class="room-button" id="show-room-btn">
                     <i class="fas fa-cog"></i> Gérer la salle
                 </button>
-                <button class="room-button" id="start-party-btn">
-                    <i class="fas fa-music"></i> Lancer une fête
+                <button class="room-button" id="show-events-btn">
+                    <i class="fas fa-bolt"></i> Événements
                 </button>
                 <button class="room-button" id="leave-room-btn">
                     <i class="fas fa-sign-out-alt"></i> Quitter

@@ -964,3 +964,475 @@
                 height: 120px;
             }
         }
+        /* Ajoutez ces styles à la fin de votre fichier style.css existant */
+
+/* Styles pour le modal des événements */
+.events-container {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    margin-bottom: 20px;
+}
+
+.event-item {
+    background: rgba(0, 0, 0, 0.3);
+    padding: 15px;
+    border-radius: 10px;
+    border: 1px solid var(--neon-orange);
+}
+
+.event-item h3 {
+    color: var(--neon-orange);
+    margin-bottom: 8px;
+    font-size: 1.1rem;
+}
+
+.event-item p {
+    font-size: 0.9rem;
+    opacity: 0.8;
+    margin-bottom: 10px;
+}
+
+.event-button {
+    width: 100%;
+    padding: 10px;
+    background: rgba(255, 140, 0, 0.2);
+    color: white;
+    border: 1px solid var(--neon-orange);
+    border-radius: 6px;
+    cursor: pointer;
+    transition: var(--transition);
+}
+
+.event-button:hover {
+    background: rgba(255, 140, 0, 0.4);
+    transform: translateY(-2px);
+}
+
+.event-button:disabled {
+    background: rgba(100, 100, 100, 0.3);
+    border-color: #666;
+    color: #888;
+    cursor: not-allowed;
+    transform: none;
+}
+
+/* Styles pour les boosts actifs */
+.active-boosts {
+    margin-top: 20px;
+    padding: 15px;
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 8px;
+    border: 1px solid var(--neon-green);
+}
+
+.active-boosts h3 {
+    color: var(--neon-green);
+    text-align: center;
+    margin-bottom: 10px;
+    font-size: 1rem;
+}
+
+.boost-item {
+    background: rgba(57, 255, 20, 0.1);
+    padding: 8px 12px;
+    margin: 5px 0;
+    border-radius: 6px;
+    border: 1px solid var(--neon-green);
+    font-size: 0.9rem;
+    text-align: center;
+}
+
+.no-boosts {
+    text-align: center;
+    opacity: 0.7;
+    font-style: italic;
+    padding: 10px;
+}
+
+/* Indicateur de défi */
+.challenge-indicator {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    background: rgba(255, 140, 0, 0.9);
+    padding: 10px 15px;
+    border-radius: 8px;
+    border: 2px solid var(--neon-yellow);
+    box-shadow: 0 0 15px var(--neon-orange);
+    text-align: center;
+    z-index: 10;
+}
+
+.challenge-timer {
+    font-size: 1.5rem;
+    font-weight: bold;
+    color: var(--neon-yellow);
+    text-shadow: 0 0 5px var(--neon-yellow);
+    font-family: 'Orbitron', sans-serif;
+}
+
+.challenge-text {
+    font-size: 0.8rem;
+    font-weight: bold;
+    margin-top: 5px;
+}
+
+/* Nouveaux boutons de navigation */
+.nav-link#events-btn {
+    background: rgba(255, 140, 0, 0.2);
+    border: 1px solid var(--neon-orange);
+}
+
+.nav-link#events-btn:hover {
+    background: rgba(255, 140, 0, 0.4);
+    box-shadow: 0 0 10px var(--neon-orange);
+}
+
+/* Améliorations supplémentaires */
+.upgrade-button:enabled {
+    border-color: var(--neon-purple);
+}
+
+.upgrade-button:enabled:hover {
+    border-color: var(--neon-blue);
+    box-shadow: 0 0 10px var(--neon-blue);
+}
+
+/* Animation pour les boosts actifs */
+@keyframes pulse-glow {
+    0%, 100% { 
+        box-shadow: 0 0 5px var(--neon-green);
+    }
+    50% { 
+        box-shadow: 0 0 15px var(--neon-green), 0 0 25px var(--neon-green);
+    }
+}
+
+.boost-item {
+    animation: pulse-glow 2s infinite;
+}
+
+/* Responsive pour les nouveaux éléments */
+@media (max-width: 768px) {
+    .events-container {
+        gap: 10px;
+    }
+    
+    .event-item {
+        padding: 12px;
+    }
+    
+    .event-item h3 {
+        font-size: 1rem;
+    }
+    
+    .challenge-indicator {
+        top: 10px;
+        right: 10px;
+        padding: 8px 12px;
+    }
+    
+    .challenge-timer {
+        font-size: 1.2rem;
+    }
+    
+    .active-boosts {
+        padding: 12px;
+    }
+}
+
+@media (max-width: 480px) {
+    .event-button {
+        padding: 8px;
+        font-size: 0.9rem;
+    }
+    
+    .challenge-indicator {
+        position: relative;
+        top: auto;
+        right: auto;
+        margin-top: 10px;
+    }
+}
+/* ============================
+   CORRECTIONS POUR ORDINATEUR
+   ============================ */
+
+/* Empêcher le débordement horizontal */
+body {
+    overflow-x: hidden;
+    max-width: 100vw;
+}
+
+.main-container {
+    width: 100%;
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 20px;
+    box-sizing: border-box;
+}
+
+/* Ajustements pour la grille du jeu sur grands écrans */
+@media (min-width: 1025px) {
+    .game-container {
+        grid-template-columns: minmax(300px, 1fr) minmax(400px, 2fr) minmax(300px, 1fr);
+        gap: 25px;
+    }
+    
+    .stats-container,
+    .upgrade-container {
+        min-width: 0; /* Permet le redimensionnement */
+    }
+    
+    .clicker-container {
+        min-width: 0;
+        padding: 40px 30px;
+    }
+}
+
+/* Correction pour les modals sur grands écrans */
+.modal-content {
+    max-width: 90vw;
+    width: auto;
+    min-width: 300px;
+    margin: 0 20px;
+}
+
+/* Ajustement des boutons d'améliorations */
+.upgrade-button {
+    min-width: 0;
+    word-wrap: break-word;
+}
+
+.upgrade-info {
+    min-width: 0;
+    flex: 1;
+}
+
+.upgrade-name {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.upgrade-description {
+    font-size: 0.75rem;
+}
+
+/* Correction pour le header */
+.header-container {
+    max-width: 1200px;
+    padding: 0 20px;
+}
+
+/* Ajustement des sections multijoueur */
+.multiplayer-container {
+    min-width: 0;
+}
+
+.leaderboard {
+    min-width: 0;
+}
+
+.player-info {
+    min-width: 0;
+}
+
+.player-name {
+    min-width: 0;
+    flex: 1;
+}
+
+.player-name span {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: inline-block;
+    max-width: 150px;
+}
+
+/* Correction pour les notifications */
+.notification {
+    max-width: 400px;
+    word-wrap: break-word;
+    right: 20px;
+    left: auto;
+}
+
+/* Ajustement des statistiques */
+.stats-grid {
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+}
+
+/* Correction pour les écrans très larges */
+@media (min-width: 1400px) {
+    .main-container {
+        max-width: 1300px;
+    }
+}
+
+@media (min-width: 1600px) {
+    .main-container {
+        max-width: 1500px;
+    }
+}
+
+/* Empêcher le débordement du cookie */
+.clicker-container {
+    position: relative;
+    overflow: hidden;
+}
+
+#click-target {
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+}
+
+/* Correction pour les boosts actifs */
+.active-boosts {
+    max-height: 200px;
+    overflow-y: auto;
+}
+
+.boost-item {
+    word-wrap: break-word;
+}
+
+/* Ajustement des événements */
+.events-container {
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+.event-item {
+    min-width: 0;
+}
+
+/* Correction pour le menu hamburger en desktop */
+@media (min-width: 769px) {
+    .hamburger {
+        display: none;
+    }
+    
+    .nav-links {
+        display: flex !important;
+    }
+}
+
+/* Ajustement des boutons de sauvegarde */
+.save-buttons {
+    flex-wrap: wrap;
+}
+
+.save-button {
+    flex: 1;
+    min-width: 120px;
+    margin: 5px;
+}
+
+/* Correction pour les contrôles de salle */
+.room-controls {
+    flex-wrap: wrap;
+}
+
+.room-button {
+    flex: 1;
+    min-width: 140px;
+    margin: 3px;
+}
+
+/* Ajustement pour les écrans de taille moyenne */
+@media (max-width: 1280px) {
+    .game-container {
+        gap: 15px;
+    }
+    
+    .stats-container,
+    .upgrade-container {
+        padding: 15px;
+    }
+    
+    .clicker-container {
+        padding: 25px 20px;
+    }
+}
+
+/* Correction spécifique pour le modal des événements */
+#events-modal .modal-content {
+    max-width: 500px;
+}
+
+.event-button {
+    white-space: nowrap;
+}
+
+/* Ajustement pour les très petits écrans d'ordinateur */
+@media (max-width: 1024px) and (min-width: 769px) {
+    .game-container {
+        grid-template-columns: 1fr 1fr;
+        grid-template-rows: auto auto;
+    }
+    
+    .clicker-container {
+        grid-column: 1 / -1;
+        order: -1;
+    }
+    
+    .upgrade-container {
+        grid-column: 1 / -1;
+        max-height: 300px;
+    }
+}
+
+/* Correction pour l'indicateur de défi */
+.challenge-indicator {
+    max-width: 120px;
+    word-wrap: break-word;
+}
+
+/* Ajustement des icônes */
+.fas, .fab {
+    flex-shrink: 0;
+}
+
+/* Empêcher le zoom sur mobile pour les inputs */
+@media (max-width: 768px) {
+    input, select, textarea {
+        font-size: 16px; /* Empêche le zoom sur iOS */
+    }
+}
+
+/* Correction pour les long noms de joueurs */
+.player-name {
+    max-width: 200px;
+}
+
+@media (max-width: 768px) {
+    .player-name {
+        max-width: 150px;
+    }
+}
+
+@media (max-width: 480px) {
+    .player-name {
+        max-width: 120px;
+    }
+}
+
+/* Ajustement final pour les très grands écrans */
+@media (min-width: 1920px) {
+    .main-container {
+        max-width: 1800px;
+    }
+    
+    .game-container {
+        gap: 30px;
+    }
+    
+    #click-target {
+        width: 300px;
+        height: 300px;
+    }
+}
