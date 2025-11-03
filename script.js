@@ -170,9 +170,14 @@ class MultiplayerClient {
         this.activeChallenge = false;
         this.challengeTimeLeft = 0;
         this.challengeInterval = null;
+        this.boostEndTime = 0;
+        this.challengeStartTime = 0;
+        this.challengeDuration = 0;
+        this.challengeScores = {};
         
         this.initializeSocket();
         this.bindEvents();
+        this.startBoostCheck();
     }
     
     showRoomModal() {
@@ -247,7 +252,7 @@ class MultiplayerClient {
         });
         
         this.socket.on('multiplayer-boost-started', () => {
-            this.startMultiplayerBoost();
+            this.handleMultiplayerBoostStarted();
         });
         
         this.socket.on('gift-distributed', () => {
@@ -255,11 +260,15 @@ class MultiplayerClient {
         });
         
         this.socket.on('challenge-started', (data) => {
-            this.startChallenge(data.duration);
+            this.handleChallengeStarted(data);
         });
         
         this.socket.on('challenge-ended', (data) => {
-            this.endChallenge(data.winner);
+            this.handleChallengeEnded(data);
+        });
+        
+        this.socket.on('challenge-update', (data) => {
+            this.updateChallengeProgress(data);
         });
     }
     
@@ -331,7 +340,7 @@ class MultiplayerClient {
             this.leaveRoom();
         });
         
-        // Nouveaux événements
+        // ÉVÉNEMENTS MULTIJOUEURS CORRIGÉS
         document.getElementById('start-party-btn-modal').addEventListener('click', () => {
             this.startCookieParty();
         });
@@ -345,7 +354,7 @@ class MultiplayerClient {
         });
         
         document.getElementById('start-challenge-btn').addEventListener('click', () => {
-            this.startChallenge(60);
+            this.startChallenge();
         });
         
         document.getElementById('show-room-btn').addEventListener('click', () => {
@@ -394,6 +403,11 @@ class MultiplayerClient {
         // Nettoyer les effets de fête
         this.cleanupPartyEffects();
         
+        // Nettoyer le défi
+        if (this.activeChallenge) {
+            this.endChallenge();
+        }
+        
         if (this.socket) {
             this.socket.disconnect();
             this.socket.connect();
@@ -404,6 +418,8 @@ class MultiplayerClient {
         this.players = [];
         this.previousPlayerOrder = [];
         this.activeParty = false;
+        this.activeBoost = false;
+        this.activeChallenge = false;
         
         this.updateLeaderboard([]);
         this.hideRoomModal();
@@ -501,6 +517,13 @@ class MultiplayerClient {
     updatePlayerScore(gameData) {
         if (!this.connected || !this.currentRoom) return;
         
+        // Envoyer le score au serveur pour le défi
+        if (this.activeChallenge) {
+            this.socket.emit('challenge-progress', {
+                score: gameData.score
+            });
+        }
+        
         this.socket.emit('update-score', {
             score: gameData.score,
             level: gameData.level,
@@ -591,7 +614,7 @@ class MultiplayerClient {
     }
     
     // ============================
-    // CORRECTIONS POUR LA FÊTE DES COOKIES
+    // ÉVÉNEMENTS MULTIJOUEURS CORRIGÉS
     // ============================
 
     startCookieParty() {
@@ -742,47 +765,141 @@ class MultiplayerClient {
         document.body.style.background = '';
     }
     
+    // ============================
+    // BOOST MULTIJOUEUR CORRIGÉ
+    // ============================
+    
     startMultiplayerBoost() {
-        if (!this.connected || !this.currentRoom) return;
-        
+        if (!this.connected || !this.currentRoom) {
+            this.showNotification('Non connecté ou pas dans une salle', 'var(--neon-pink)');
+            return;
+        }
+
+        // Vérifier si un boost est déjà actif
+        if (this.activeBoost) {
+            this.showNotification('Un boost est déjà actif! Attendez la fin.', 'var(--neon-pink)');
+            return;
+        }
+
+        // Désactiver le bouton temporairement
+        const boostBtn = document.getElementById('start-boost-btn');
+        const originalText = boostBtn.innerHTML;
+        boostBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Activation...';
+        boostBtn.disabled = true;
+
         this.socket.emit('start-multiplayer-boost');
         this.showNotification('🚀 BOOST MULTIJOUEUR ACTIVÉ! +50% de production', 'var(--neon-green)');
         
-        // Activer le boost pendant 30 secondes
-        this.activeBoost = true;
-        gameData.boostMultiplier = 1.5;
-        updateBoostDisplay();
-        
+        // Réactiver le bouton après 2 secondes
         setTimeout(() => {
-            this.activeBoost = false;
-            gameData.boostMultiplier = 1.0;
-            updateBoostDisplay();
-            this.showNotification('Boost terminé!', 'var(--neon-pink)');
-        }, 30000);
+            boostBtn.disabled = false;
+            boostBtn.innerHTML = originalText;
+        }, 2000);
+    }
+
+    // Méthode pour gérer le boost du serveur
+    handleMultiplayerBoostStarted() {
+        this.activeBoost = true;
+        this.boostEndTime = Date.now() + 30000; // 30 secondes
+        
+        // Appliquer le bonus de production
+        const originalMultiplier = gameData.boostMultiplier;
+        gameData.boostMultiplier *= 1.5; // +50% pendant le boost
+        
+        this.showNotification('🚀 BOOST MULTIJOUEUR! +50% de production (30s)', 'var(--neon-green)');
+        updateBoostDisplay();
+
+        // Vérifier régulièrement la fin du boost
+        this.startBoostCheck();
+    }
+
+    // Vérifier la fin du boost
+    startBoostCheck() {
+        const checkBoost = () => {
+            if (this.activeBoost && Date.now() >= this.boostEndTime) {
+                this.activeBoost = false;
+                gameData.boostMultiplier = 1.0;
+                updateBoostDisplay();
+                this.showNotification('Boost terminé!', 'var(--neon-pink)');
+            }
+        };
+        
+        setInterval(checkBoost, 1000);
     }
     
+    // ============================
+    // CADEAU COLLECTIF CORRIGÉ
+    // ============================
+    
     distributeGift() {
-        if (!this.connected || !this.currentRoom) return;
-        
+        if (!this.connected || !this.currentRoom) {
+            this.showNotification('Non connecté ou pas dans une salle', 'var(--neon-pink)');
+            return;
+        }
+
+        // Désactiver le bouton temporairement
+        const giftBtn = document.getElementById('start-gift-btn');
+        const originalText = giftBtn.innerHTML;
+        giftBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Envoi...';
+        giftBtn.disabled = true;
+
         this.socket.emit('distribute-gift');
         this.showNotification('🎁 CADEAU ENVOYÉ À TOUS LES JOUEURS!', 'var(--neon-blue)');
+        
+        // Réactiver le bouton après 2 secondes
+        setTimeout(() => {
+            giftBtn.disabled = false;
+            giftBtn.innerHTML = originalText;
+        }, 2000);
     }
     
     receiveGift() {
-        score += 1000;
-        totalCookies += 1000;
+        const giftAmount = 1000;
+        score += giftAmount;
+        totalCookies += giftAmount;
         mettreAJourAffichage();
-        this.showNotification('🎁 Vous avez reçu 1000 cookies!', 'var(--neon-blue)');
+        this.showNotification(`🎁 Vous avez reçu ${giftAmount} cookies!`, 'var(--neon-blue)');
+        afficherEffetSpecial(`+${giftAmount} COOKIES!`, 'var(--neon-blue)');
     }
     
-    startChallenge(duration) {
-        if (!this.connected || !this.currentRoom) return;
+    // ============================
+    // DÉFI RAPIDE CORRIGÉ
+    // ============================
+    
+    startChallenge() {
+        if (!this.connected || !this.currentRoom) {
+            this.showNotification('Non connecté ou pas dans une salle', 'var(--neon-pink)');
+            return;
+        }
+
+        if (this.activeChallenge) {
+            this.showNotification('Un défi est déjà en cours!', 'var(--neon-pink)');
+            return;
+        }
+
+        // Désactiver le bouton temporairement
+        const challengeBtn = document.getElementById('start-challenge-btn');
+        const originalText = challengeBtn.innerHTML;
+        challengeBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Démarrage...';
+        challengeBtn.disabled = true;
+
+        this.socket.emit('start-challenge', { duration: 60 });
         
-        this.socket.emit('start-challenge', { duration: duration });
-        this.showNotification('🏁 DÉFI COMMENCÉ! Le premier gagne un bonus!', 'var(--neon-orange)');
-        
+        // Réactiver le bouton après 2 secondes
+        setTimeout(() => {
+            challengeBtn.disabled = false;
+            challengeBtn.innerHTML = originalText;
+        }, 2000);
+    }
+
+    handleChallengeStarted(data) {
         this.activeChallenge = true;
-        this.challengeTimeLeft = duration;
+        this.challengeDuration = data.duration;
+        this.challengeTimeLeft = data.duration;
+        this.challengeStartTime = Date.now();
+        this.challengeScores = {};
+        
+        this.showNotification('🏁 DÉFI COMMENCÉ! Le premier gagne un bonus!', 'var(--neon-orange)');
         
         // Afficher l'indicateur de défi
         const indicator = document.getElementById('challenge-indicator');
@@ -796,25 +913,69 @@ class MultiplayerClient {
             
             if (this.challengeTimeLeft <= 0) {
                 clearInterval(this.challengeInterval);
-                indicator.style.display = 'none';
                 this.activeChallenge = false;
+                // Le serveur enverra challenge-ended
             }
         }, 1000);
     }
-    
-    endChallenge(winner) {
+
+    updateChallengeProgress(data) {
+        // Mettre à jour les scores du défi
+        this.challengeScores = data.scores;
+        
+        // Afficher le classement temporaire du défi
+        this.showChallengeRanking();
+    }
+
+    showChallengeRanking() {
+        // Créer un classement temporaire pour le défi
+        const sortedScores = Object.entries(this.challengeScores)
+            .sort(([,a], [,b]) => b - a)
+            .slice(0, 3);
+        
+        if (sortedScores.length > 0) {
+            const rankingText = sortedScores.map(([player, score], index) => 
+                `${index + 1}. ${player}: +${score}`
+            ).join(' | ');
+            
+            // Mettre à jour l'indicateur de défi avec le classement
+            const challengeText = document.querySelector('.challenge-text');
+            if (challengeText) {
+                challengeText.textContent = `DÉFI! ${rankingText}`;
+            }
+        }
+    }
+
+    handleChallengeEnded(data) {
         this.activeChallenge = false;
         clearInterval(this.challengeInterval);
-        document.getElementById('challenge-indicator').style.display = 'none';
         
-        if (winner === this.currentPlayer?.id) {
-            score += 5000;
-            totalCookies += 5000;
+        const indicator = document.getElementById('challenge-indicator');
+        const timer = document.getElementById('challenge-timer');
+        const challengeText = document.querySelector('.challenge-text');
+        
+        indicator.style.display = 'none';
+        timer.textContent = '60s';
+        challengeText.textContent = 'DÉFI EN COURS!';
+        
+        if (data.winner && data.winner.id === this.currentPlayer?.id) {
+            const bonus = 5000;
+            score += bonus;
+            totalCookies += bonus;
             mettreAJourAffichage();
             this.showNotification('🏆 VOUS AVEZ GAGNÉ LE DÉFI! +5000 cookies!', 'gold');
+            afficherEffetSpecial('VICTOIRE! +5000', 'gold');
+        } else if (data.winner) {
+            this.showNotification(`🏆 ${data.winner.name} a gagné le défi!`, 'var(--neon-orange)');
         } else {
             this.showNotification('💫 Le défi est terminé!', 'var(--neon-pink)');
         }
+    }
+
+    endChallenge() {
+        this.activeChallenge = false;
+        clearInterval(this.challengeInterval);
+        document.getElementById('challenge-indicator').style.display = 'none';
     }
 }
 
