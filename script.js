@@ -1629,3 +1629,635 @@ cookies.addEventListener('dragstart', function(e) {
 cookies.addEventListener('mousedown', function(e) {
     e.preventDefault();
 });
+// ============================
+// SYSTÈME DE SON COMPLET
+// ============================
+
+class SoundManager {
+    constructor() {
+        this.sounds = {};
+        this.masterVolume = 0.7;
+        this.musicVolume = 0.4;
+        this.sfxVolume = 0.7;
+        this.musicEnabled = true;
+        this.sfxEnabled = true;
+        this.initialized = false;
+        
+        this.initializeSounds();
+    }
+    
+    initializeSounds() {
+        // Sons de base
+        this.sounds = {
+            click: document.getElementById('clickSound'),
+            purchase: document.getElementById('purchaseSound'),
+            levelUp: document.getElementById('levelUpSound'),
+            goldenCookie: document.getElementById('goldenCookieSound'),
+            party: document.getElementById('partySound'),
+            boost: document.getElementById('boostSound'),
+            challenge: document.getElementById('challengeSound'),
+            victory: document.getElementById('victorySound'),
+            background: document.getElementById('backgroundMusic')
+        };
+        
+        // Configurer les volumes
+        this.updateVolumes();
+        this.initialized = true;
+        
+        // Démarrer la musique de fond après interaction utilisateur
+        this.setupAutoplay();
+    }
+    
+    setupAutoplay() {
+        const startAudio = () => {
+            if (this.musicEnabled && this.sounds.background) {
+                this.sounds.background.play().catch(e => console.log('Auto-play prevented:', e));
+            }
+            document.removeEventListener('click', startAudio);
+            document.removeEventListener('keydown', startAudio);
+        };
+        
+        document.addEventListener('click', startAudio);
+        document.addEventListener('keydown', startAudio);
+    }
+    
+    updateVolumes() {
+        if (!this.initialized) return;
+        
+        // Volume musique
+        if (this.sounds.background) {
+            this.sounds.background.volume = this.musicEnabled ? this.musicVolume * this.masterVolume : 0;
+        }
+        
+        // Volume SFX
+        Object.keys(this.sounds).forEach(key => {
+            if (key !== 'background' && this.sounds[key]) {
+                this.sounds[key].volume = this.sfxEnabled ? this.sfxVolume * this.masterVolume : 0;
+            }
+        });
+    }
+    
+    play(soundName, options = {}) {
+        if (!this.initialized || !this.sfxEnabled || !this.sounds[soundName]) return;
+        
+        const sound = this.sounds[soundName];
+        const volume = options.volume || 1;
+        
+        try {
+            sound.currentTime = 0;
+            sound.volume = this.sfxVolume * this.masterVolume * volume;
+            sound.play().catch(e => console.log('Sound play error:', e));
+        } catch (error) {
+            console.log('Sound error:', error);
+        }
+    }
+    
+    playMusic() {
+        if (!this.initialized || !this.musicEnabled || !this.sounds.background) return;
+        
+        this.sounds.background.play().catch(e => console.log('Music play error:', e));
+    }
+    
+    stopMusic() {
+        if (this.sounds.background) {
+            this.sounds.background.pause();
+            this.sounds.background.currentTime = 0;
+        }
+    }
+    
+    toggleMusic() {
+        this.musicEnabled = !this.musicEnabled;
+        this.updateVolumes();
+        
+        if (this.musicEnabled) {
+            this.playMusic();
+        } else {
+            this.stopMusic();
+        }
+        
+        return this.musicEnabled;
+    }
+    
+    toggleSFX() {
+        this.sfxEnabled = !this.sfxEnabled;
+        this.updateVolumes();
+        return this.sfxEnabled;
+    }
+    
+    setMasterVolume(volume) {
+        this.masterVolume = Math.max(0, Math.min(1, volume));
+        this.updateVolumes();
+    }
+    
+    setMusicVolume(volume) {
+        this.musicVolume = Math.max(0, Math.min(1, volume));
+        this.updateVolumes();
+    }
+    
+    setSFXVolume(volume) {
+        this.sfxVolume = Math.max(0, Math.min(1, volume));
+        this.updateVolumes();
+    }
+    
+    // Sons spéciaux avec variations
+    playRandomClick() {
+        const variations = [0.9, 1.0, 1.1, 1.2];
+        const pitch = variations[Math.floor(Math.random() * variations.length)];
+        this.play('click', { volume: 0.3 * pitch });
+    }
+    
+    playCriticalSound() {
+        this.play('click', { volume: 0.8 });
+        // Ajouter un son supplémentaire pour les critiques
+        setTimeout(() => this.play('levelUp', { volume: 0.5 }), 100);
+    }
+}
+
+// ============================
+// MODIFICATIONS DU JEU EXISTANT
+// ============================
+
+// Ajouter le SoundManager global
+let soundManager;
+
+// Modifier la fonction de clic pour inclure les sons
+cookieCible.addEventListener("click", (event) => {
+    let cookiesGagnes = puissanceClic * gameData.boostMultiplier;
+    let soundPlayed = false;
+    
+    // Chance de méga-clic
+    if (megaClickChance > 0 && Math.random() < megaClickChance) {
+        cookiesGagnes *= 10;
+        afficherEffetSpecial("MÉGA-CLIC! x10", "var(--neon-yellow)");
+        soundManager.play('levelUp', { volume: 0.7 });
+        soundPlayed = true;
+    }
+    
+    // Chance de clic critique
+    if (criticalClickChance > 0 && Math.random() < criticalClickChance) {
+        cookiesGagnes *= 3;
+        afficherEffetSpecial("CLIC CRITIQUE! x3", "#ff4444");
+        soundManager.playCriticalSound();
+        soundPlayed = true;
+    }
+    
+    // Chance de cookie chanceux
+    if (luckyCookieActive && Math.random() < 0.1) {
+        cookiesGagnes *= 2;
+        afficherEffetSpecial("COOKIE CHANCEUX! x2", "var(--neon-green)");
+        soundManager.play('goldenCookie', { volume: 0.6 });
+        soundPlayed = true;
+    }
+    
+    // Son de clic normal (seulement si aucun son spécial n'a été joué)
+    if (!soundPlayed) {
+        soundManager.playRandomClick();
+    }
+    
+    score += cookiesGagnes;
+    totalCookies += cookiesGagnes;
+    mettreAJourAffichage();
+    verifierAmeliorations();
+    creerParticuleClic(event);
+    
+    // Vérifier le niveau
+    verifierNiveau();
+    
+    // Envoyer le clic au multijoueur
+    if (window.multiplayerClient) {
+        window.multiplayerClient.sendPlayerClick(cookiesGagnes);
+    }
+});
+
+// Modifier les achats pour inclure les sons
+function acheterAvecSon(upgradeName, cost, callback) {
+    if (score >= cost) {
+        score -= cost;
+        callback();
+        soundManager.play('purchase', { volume: 0.6 });
+        
+        // Son supplémentaire pour les grosses achats
+        if (cost >= 1000) {
+            setTimeout(() => soundManager.play('levelUp', { volume: 0.4 }), 200);
+        }
+        
+        return true;
+    }
+    return false;
+}
+
+// Exemple d'utilisation pour un upgrade
+btnAmeliorationAuto.addEventListener("click", () => {
+    acheterAvecSon("Robot cuisinier", couts.autoClick, () => {
+        autoPowerClick++;
+        couts.autoClick = Math.floor(couts.autoClick * 1.5);
+        coutAuto.textContent = couts.autoClick;
+        mettreAJourAffichage();
+        verifierAmeliorations();
+        
+        if (window.multiplayerClient) {
+            window.multiplayerClient.sendUpgradeBought("Robot cuisinier", couts.autoClick);
+        }
+    });
+});
+
+// Appliquer le même pattern à tous les upgrades...
+
+// Modifier la vérification de niveau pour inclure le son
+function verifierNiveau() {
+    const nouveauNiveau = Math.floor(Math.log10(totalCookies + 1)) + 1;
+    if (nouveauNiveau > niveau) {
+        niveau = nouveauNiveau;
+        afficherEffetSpecial(`NIVEAU ${niveau} ATTEINT!`, "var(--neon-pink)");
+        soundManager.play('levelUp', { volume: 0.8 });
+        
+        // Son spécial pour les niveaux multiples de 10
+        if (niveau % 10 === 0) {
+            setTimeout(() => soundManager.play('victory', { volume: 0.7 }), 500);
+        }
+    }
+}
+
+// ============================
+// AMÉLIORATIONS MULTIJOUEUR AVEC SONS
+// ============================
+
+class MultiplayerClientWithSound extends MultiplayerClient {
+    handleCookiePartyStarted() {
+        this.activeParty = true;
+        this.showNotification('🎉 FÊTE DES COOKIES! Effets activés!', 'var(--neon-yellow)');
+        
+        // Son de fête
+        soundManager.play('party', { volume: 0.8 });
+        
+        // Effet visuel de fête
+        this.startPartyVisualEffects();
+        
+        // Appliquer le bonus de production pendant la fête
+        const originalMultiplier = gameData.boostMultiplier;
+        gameData.boostMultiplier *= 1.3;
+        updateBoostDisplay();
+        
+        // Limite de 10 secondes
+        setTimeout(() => {
+            this.activeParty = false;
+            gameData.boostMultiplier = originalMultiplier;
+            updateBoostDisplay();
+            this.showNotification('Fête terminée!', 'var(--neon-pink)');
+            this.cleanupPartyEffects();
+        }, 10000);
+    }
+    
+    handleMultiplayerBoostStarted() {
+        this.activeBoost = true;
+        this.boostEndTime = Date.now() + 30000;
+        
+        // Son de boost
+        soundManager.play('boost', { volume: 0.7 });
+        
+        // Appliquer le bonus de production
+        const originalMultiplier = gameData.boostMultiplier;
+        gameData.boostMultiplier *= 1.5;
+        
+        this.showNotification('🚀 BOOST MULTIJOUEUR! +50% de production (30s)', 'var(--neon-green)');
+        updateBoostDisplay();
+    }
+    
+    receiveGift() {
+        const giftAmount = 1000;
+        score += giftAmount;
+        totalCookies += giftAmount;
+        mettreAJourAffichage();
+        this.showNotification(`🎁 Vous avez reçu ${giftAmount} cookies!`, 'var(--neon-blue)');
+        afficherEffetSpecial(`+${giftAmount} COOKIES!`, 'var(--neon-blue)');
+        
+        // Son de cadeau
+        soundManager.play('purchase', { volume: 0.8 });
+    }
+    
+    handleChallengeStarted(data) {
+        this.activeChallenge = true;
+        this.challengeDuration = data.duration;
+        this.challengeTimeLeft = data.duration;
+        this.challengeStartTime = Date.now();
+        this.challengeScores = {};
+        
+        // Son de défi
+        soundManager.play('challenge', { volume: 0.8 });
+        
+        this.showNotification('🏁 DÉFI COMMENCÉ! Le premier gagne un bonus!', 'var(--neon-orange)');
+        
+        // Afficher l'indicateur de défi
+        const indicator = document.getElementById('challenge-indicator');
+        const timer = document.getElementById('challenge-timer');
+        indicator.style.display = 'block';
+        
+        // Mettre à jour le timer
+        this.challengeInterval = setInterval(() => {
+            this.challengeTimeLeft--;
+            timer.textContent = `${this.challengeTimeLeft}s`;
+            
+            if (this.challengeTimeLeft <= 0) {
+                clearInterval(this.challengeInterval);
+                this.activeChallenge = false;
+            }
+        }, 1000);
+    }
+    
+    handleChallengeEnded(data) {
+        this.activeChallenge = false;
+        clearInterval(this.challengeInterval);
+        
+        const indicator = document.getElementById('challenge-indicator');
+        const timer = document.getElementById('challenge-timer');
+        const challengeText = document.querySelector('.challenge-text');
+        
+        indicator.style.display = 'none';
+        timer.textContent = '60s';
+        challengeText.textContent = 'DÉFI EN COURS!';
+        
+        if (data.winner && data.winner.id === this.currentPlayer?.id) {
+            const bonus = 5000;
+            score += bonus;
+            totalCookies += bonus;
+            mettreAJourAffichage();
+            
+            // Son de victoire
+            soundManager.play('victory', { volume: 1.0 });
+            
+            this.showNotification('🏆 VOUS AVEZ GAGNÉ LE DÉFI! +5000 cookies!', 'gold');
+            afficherEffetSpecial('VICTOIRE! +5000', 'gold');
+        } else if (data.winner) {
+            this.showNotification(`🏆 ${data.winner.name} a gagné le défi!`, 'var(--neon-orange)');
+            soundManager.play('levelUp', { volume: 0.5 });
+        } else {
+            this.showNotification('💫 Le défi est terminé!', 'var(--neon-pink)');
+        }
+    }
+}
+
+// ============================
+// INTERFACE DE CONTRÔLE DU SON
+// ============================
+
+function createSoundControls() {
+    const soundControls = document.createElement('div');
+    soundControls.id = 'sound-controls';
+    soundControls.innerHTML = `
+        <div class="sound-panel">
+            <h3><i class="fas fa-volume-up"></i> CONTROLES AUDIO</h3>
+            
+            <div class="sound-control-group">
+                <button class="sound-toggle" id="toggle-music">
+                    <i class="fas fa-music"></i>
+                    <span>Musique: ON</span>
+                </button>
+                
+                <button class="sound-toggle" id="toggle-sfx">
+                    <i class="fas fa-bell"></i>
+                    <span>SFX: ON</span>
+                </button>
+            </div>
+            
+            <div class="volume-controls">
+                <div class="volume-slider">
+                    <label>Volume Principal</label>
+                    <input type="range" id="master-volume" min="0" max="100" value="70" class="slider">
+                </div>
+                
+                <div class="volume-slider">
+                    <label>Volume Musique</label>
+                    <input type="range" id="music-volume" min="0" max="100" value="40" class="slider">
+                </div>
+                
+                <div class="volume-slider">
+                    <label>Volume SFX</label>
+                    <input type="range" id="sfx-volume" min="0" max="100" value="70" class="slider">
+                </div>
+            </div>
+        </div>
+    `;
+    
+    // Ajouter les styles
+    const style = document.createElement('style');
+    style.textContent = `
+        #sound-controls {
+            position: fixed;
+            top: 80px;
+            right: 20px;
+            z-index: 1000;
+        }
+        
+        .sound-panel {
+            background: var(--card-bg);
+            padding: 15px;
+            border-radius: 10px;
+            border: 1px solid var(--neon-blue);
+            box-shadow: 0 0 15px rgba(0, 255, 255, 0.3);
+            backdrop-filter: blur(10px);
+            min-width: 250px;
+        }
+        
+        .sound-panel h3 {
+            color: var(--neon-blue);
+            margin-bottom: 15px;
+            font-size: 1rem;
+            text-align: center;
+        }
+        
+        .sound-control-group {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+        
+        .sound-toggle {
+            flex: 1;
+            padding: 8px 12px;
+            background: rgba(0, 0, 0, 0.4);
+            border: 1px solid var(--neon-blue);
+            border-radius: 6px;
+            color: white;
+            cursor: pointer;
+            transition: var(--transition);
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            font-size: 0.8rem;
+        }
+        
+        .sound-toggle:hover {
+            background: rgba(0, 255, 255, 0.2);
+        }
+        
+        .sound-toggle.active {
+            background: rgba(0, 255, 255, 0.3);
+            border-color: var(--neon-green);
+        }
+        
+        .volume-controls {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        
+        .volume-slider {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+        
+        .volume-slider label {
+            font-size: 0.8rem;
+            color: var(--neon-blue);
+        }
+        
+        .slider {
+            width: 100%;
+            height: 5px;
+            border-radius: 5px;
+            background: rgba(0, 0, 0, 0.4);
+            outline: none;
+            -webkit-appearance: none;
+        }
+        
+        .slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 15px;
+            height: 15px;
+            border-radius: 50%;
+            background: var(--neon-blue);
+            cursor: pointer;
+            box-shadow: 0 0 5px var(--neon-blue);
+        }
+        
+        @media (max-width: 768px) {
+            #sound-controls {
+                top: auto;
+                bottom: 20px;
+                right: 20px;
+                left: 20px;
+            }
+            
+            .sound-panel {
+                min-width: auto;
+            }
+        }
+    `;
+    
+    document.head.appendChild(style);
+    document.body.appendChild(soundControls);
+    
+    // Événements des contrôles
+    document.getElementById('toggle-music').addEventListener('click', () => {
+        const isEnabled = soundManager.toggleMusic();
+        const button = document.getElementById('toggle-music');
+        button.querySelector('span').textContent = `Musique: ${isEnabled ? 'ON' : 'OFF'}`;
+        button.classList.toggle('active', isEnabled);
+    });
+    
+    document.getElementById('toggle-sfx').addEventListener('click', () => {
+        const isEnabled = soundManager.toggleSFX();
+        const button = document.getElementById('toggle-sfx');
+        button.querySelector('span').textContent = `SFX: ${isEnabled ? 'ON' : 'OFF'}`;
+        button.classList.toggle('active', isEnabled);
+    });
+    
+    document.getElementById('master-volume').addEventListener('input', (e) => {
+        soundManager.setMasterVolume(e.target.value / 100);
+    });
+    
+    document.getElementById('music-volume').addEventListener('input', (e) => {
+        soundManager.setMusicVolume(e.target.value / 100);
+    });
+    
+    document.getElementById('sfx-volume').addEventListener('input', (e) => {
+        soundManager.setSFXVolume(e.target.value / 100);
+    });
+}
+
+// ============================
+// INITIALISATION FINALE
+// ============================
+
+document.addEventListener('DOMContentLoaded', () => {
+    creerParticulesFond();
+    mettreAJourAffichage();
+    verifierAmeliorations();
+    updateBoostDisplay();
+    
+    // Initialiser le système de son
+    soundManager = new SoundManager();
+    createSoundControls();
+    
+    // Initialiser le client multijoueur amélioré
+    window.multiplayerClient = new MultiplayerClientWithSound();
+    
+    // Charger automatiquement la sauvegarde au démarrage
+    const savedGame = localStorage.getItem('cookieClickerNeonSave');
+    if (savedGame) {
+        if (confirm("Une sauvegarde a été trouvée. Voulez-vous charger votre partie précédente?")) {
+            btnLoadGame.click();
+        }
+    }
+    
+    // Démarrer la musique après un court délai
+    setTimeout(() => {
+        soundManager.playMusic();
+    }, 1000);
+});
+
+// Sons pour les cookies dorés
+function creerCookieDore() {
+    if (!goldenCookieActive) return;
+    
+    const cookie = document.createElement('div');
+    cookie.id = 'golden-cookie';
+    cookie.classList.add('golden-cookie');
+    cookie.style.width = '80px';
+    cookie.style.height = '80px';
+    cookie.style.position = 'fixed';
+    cookie.style.left = `${Math.random() * 80 + 10}%`;
+    cookie.style.top = `${Math.random() * 80 + 10}%`;
+    cookie.style.cursor = 'pointer';
+    cookie.style.zIndex = '100';
+    cookie.style.background = 'radial-gradient(circle, #ffd700, #ffaa00)';
+    cookie.style.borderRadius = '50%';
+    cookie.style.boxShadow = '0 0 20px gold, 0 0 40px orange';
+    
+    // Son d'apparition
+    soundManager.play('goldenCookie', { volume: 0.5 });
+    
+    document.body.appendChild(cookie);
+    
+    // Gérer le clic sur le cookie doré
+    cookie.addEventListener('click', () => {
+        const bonus = 100 * niveau;
+        score += bonus;
+        totalCookies += bonus;
+        mettreAJourAffichage();
+        
+        // Son de récompense
+        soundManager.play('purchase', { volume: 0.8 });
+        
+        afficherEffetSpecial(`+${bonus} COOKIES!`, "gold");
+        cookie.remove();
+    });
+    
+    // Empêcher le drag & drop
+    cookie.addEventListener('dragstart', function(e) {
+        e.preventDefault();
+        return false;
+    });
+
+    cookie.addEventListener('mousedown', function(e) {
+        e.preventDefault();
+    });
+    
+    // Le cookie disparaît après 10 secondes
+    setTimeout(() => {
+        if (document.body.contains(cookie)) {
+            cookie.remove();
+        }
+    }, 10000);
+}

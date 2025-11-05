@@ -8,6 +8,41 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
     <link rel="stylesheet" href="style.css">
+    <audio id="clickSound" preload="auto">
+    <source src="https://assets.mixkit.co/active_storage/sfx/258/258-preview.mp3" type="audio/mpeg">
+</audio>
+
+<audio id="purchaseSound" preload="auto">
+    <source src="https://assets.mixkit.co/active_storage/sfx/269/269-preview.mp3" type="audio/mpeg">
+</audio>
+
+<audio id="levelUpSound" preload="auto">
+    <source src="https://assets.mixkit.co/active_storage/sfx/270/270-preview.mp3" type="audio/mpeg">
+</audio>
+
+<audio id="goldenCookieSound" preload="auto">
+    <source src="https://assets.mixkit.co/active_storage/sfx/257/257-preview.mp3" type="audio/mpeg">
+</audio>
+
+<audio id="partySound" preload="auto">
+    <source src="https://assets.mixkit.co/active_storage/sfx/256/256-preview.mp3" type="audio/mpeg">
+</audio>
+
+<audio id="boostSound" preload="auto">
+    <source src="https://assets.mixkit.co/active_storage/sfx/274/274-preview.mp3" type="audio/mpeg">
+</audio>
+
+<audio id="challengeSound" preload="auto">
+    <source src="https://assets.mixkit.co/active_storage/sfx/275/275-preview.mp3" type="audio/mpeg">
+</audio>
+
+<audio id="victorySound" preload="auto">
+    <source src="https://assets.mixkit.co/active_storage/sfx/271/271-preview.mp3" type="audio/mpeg">
+</audio>
+
+<audio id="backgroundMusic" loop preload="auto">
+    <source src="https://assets.mixkit.co/music/preview/mixkit-game-show-suspense-waiting-667.mp3" type="audio/mpeg">
+</audio>
 </head>
 <body>
     <div class="particles" id="particles"></div>
@@ -175,7 +210,7 @@
 
             <!-- Section principale où l'on clique -->
             <div class="clicker-container">
-                <img src="cookie.png" alt="Cookie à cliquer" id="click-target">
+                <img src="image\cookie.png" alt="Cookie à cliquer" id="click-target">
                 <div class="click-power">Puissance de clic: <span id="click-power">1</span> cookie(s)</div>
                 
                 <!-- Indicateur de défi en cours -->
